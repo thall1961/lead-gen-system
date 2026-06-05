@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plumber Lead Generation System</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .header {
+      background: #1a5f7a;
+      color: white;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .stat-item {
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.8;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .filters {
+      background: white;
+      padding: 20px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .filter-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      color: #666;
+    }
+
+    input, select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #1a5f7a;
+      box-shadow: 0 0 0 2px rgba(26, 95, 122, 0.1);
+    }
+
+    button {
+      padding: 8px 16px;
+      background: #1a5f7a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #0f3f52;
+    }
+
+    .table-wrapper {
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #f0f0f0;
+      border-bottom: 2px solid #ddd;
+    }
+
+    th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #666;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+
+    .company-link {
+      color: #1a5f7a;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .company-link:hover {
+      text-decoration: underline;
+    }
+
+    .score {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-weight: 600;
+      font-size: 12px;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .score.high {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .score.medium {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .score.low {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .contact {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+      padding: 20px;
+    }
+
+    .pagination button {
+      padding: 6px 12px;
+      min-width: 40px;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .lead-detail {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      z-index: 1000;
+    }
+
+    .lead-detail.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lead-detail-content {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .lead-detail-content h2 {
+      margin-bottom: 20px;
+      color: #1a5f7a;
+    }
+
+    .lead-detail-section {
+      margin-bottom: 20px;
+    }
+
+    .lead-detail-section h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .close-btn {
+      float: right;
+      background: #999;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: white;
+      border: none;
+    }
+
+    .close-btn:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔧 Plumber Lead Generation System</h1>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+
+  <div class="container">
+    <div class="filters">
+      <div class="filter-group">
+        <div class="filter-item">
+          <label for="searchInput">Search</label>
+          <input type="text" id="searchInput" placeholder="Company name, website, or phone...">
+        </div>
+        <div class="filter-item">
+          <label for="stateFilter">State</label>
+          <select id="stateFilter">
+            <option value="">All States</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="leadScoreFilter">Lead Score Min</label>
+          <input type="number" id="leadScoreFilter" min="1" max="100" placeholder="Min score">
+        </div>
+        <div class="filter-item">
+          <label for="websiteScoreFilter">Website Score Min</label>
+          <input type="number" id="websiteScoreFilter" min="1" max="100" placeholder="Min score">
+        </div>
+        <div class="filter-item" style="align-self: flex-end;">
+          <button onclick="applyFilters()">Apply Filters</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="errorMessage"></div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>State</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Website Score</th>
+            <th>Lead Score</th>
+            <th>Missed Call Score</th>
+          </tr>
+        </thead>
+        <tbody id="leadsTable">
+          <tr class="loading">
+            <td colspan="7">Loading leads...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button id="prevBtn" onclick="previousPage()" disabled>Previous</button>
+      <span id="pageInfo"></span>
+      <button id="nextBtn" onclick="nextPage()" disabled>Next</button>
+    </div>
+  </div>
+
+  <div class="lead-detail" id="leadDetail">
+    <div class="lead-detail-content" id="leadDetailContent"></div>
+  </div>
+
+  <script>
+    let currentPage = 0;
+    const pageSize = 50;
+    let allLeads = [];
+    let filteredLeads = [];
+    let stats = null;
+
+    const US_STATES = [
+      'OK', 'AR', 'LA', 'NM', 'CO', 'AZ', 'UT', 'KS', 'MO', 'TN',
+      'MS', 'AL', 'GA', 'FL', 'NC', 'SC', 'VA', 'KY', 'IN', 'OH', 'PA'
+    ];
+
+    async function loadLeads() {
+      try {
+        const response = await fetch(`/api/leads?skip=0&limit=10000`);
+        const data = await response.json();
+        allLeads = data.data || [];
+        filteredLeads = [...allLeads];
+        loadStats();
+        populateStateFilter();
+        renderTable();
+      } catch (error) {
+        showError('Failed to load leads');
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const response = await fetch('/api/stats');
+        stats = await response.json();
+        renderStats();
+      } catch (error) {
+        console.error('Failed to load stats', error);
+      }
+    }
+
+    function renderStats() {
+      if (!stats) return;
+
+      const statsHtml = `
+        <div class="stat-item">
+          <div class="stat-label">Total Leads</div>
+          <div class="stat-value">${stats.total}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">High Quality</div>
+          <div class="stat-value">${stats.highQualityLeads}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Avg Lead Score</div>
+          <div class="stat-value">${stats.averageLeadScore}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">With Email</div>
+          <div class="stat-value">${stats.withEmail}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">With Phone</div>
+          <div class="stat-value">${stats.withPhone}</div>
+        </div>
+      `;
+
+      document.getElementById('statsBar').innerHTML = statsHtml;
+    }
+
+    function populateStateFilter() {
+      const select = document.getElementById('stateFilter');
+      US_STATES.forEach(state => {
+        const option = document.createElement('option');
+        option.value = state;
+        option.textContent = state;
+        select.appendChild(option);
+      });
+    }
+
+    function renderTable() {
+      const start = currentPage * pageSize;
+      const end = start + pageSize;
+      const pageLeads = filteredLeads.slice(start, end);
+
+      if (pageLeads.length === 0) {
+        document.getElementById('leadsTable').innerHTML = '<tr class="loading"><td colspan="7">No leads found</td></tr>';
+        return;
+      }
+
+      const html = pageLeads.map(lead => `
+        <tr onclick="showLeadDetail('${lead.id}')">
+          <td><a class="company-link">${lead.company_name}</a></td>
+          <td>${lead.state || '-'}</td>
+          <td class="contact">${lead.phone || '-'}</td>
+          <td class="contact">${lead.email || '-'}</td>
+          <td>${lead.website_score ? `<span class="score ${getScoreClass(lead.website_score)}">${lead.website_score}</span>` : '-'}</td>
+          <td>${lead.lead_score ? `<span class="score ${getScoreClass(lead.lead_score)}">${lead.lead_score}</span>` : '-'}</td>
+          <td>${lead.missed_call_score ? `<span class="score ${getScoreClass(lead.missed_call_score)}">${lead.missed_call_score}</span>` : '-'}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('leadsTable').innerHTML = html;
+      updatePagination();
+    }
+
+    function getScoreClass(score) {
+      if (score >= 70) return 'high';
+      if (score >= 40) return 'medium';
+      return 'low';
+    }
+
+    function updatePagination() {
+      const totalPages = Math.ceil(filteredLeads.length / pageSize);
+      const pageInfo = `Page ${currentPage + 1} of ${totalPages || 1}`;
+      document.getElementById('pageInfo').textContent = pageInfo;
+      document.getElementById('prevBtn').disabled = currentPage === 0;
+      document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
+    }
+
+    function previousPage() {
+      if (currentPage > 0) {
+        currentPage--;
+        renderTable();
+      }
+    }
+
+    function nextPage() {
+      const totalPages = Math.ceil(filteredLeads.length / pageSize);
+      if (currentPage < totalPages - 1) {
+        currentPage++;
+        renderTable();
+      }
+    }
+
+    async function applyFilters() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const state = document.getElementById('stateFilter').value;
+      const leadScoreMin = parseInt(document.getElementById('leadScoreFilter').value) || 0;
+      const websiteScoreMin = parseInt(document.getElementById('websiteScoreFilter').value) || 0;
+
+      filteredLeads = allLeads.filter(lead => {
+        const matchesSearch = !search || 
+          lead.company_name.toLowerCase().includes(search) ||
+          (lead.website && lead.website.toLowerCase().includes(search)) ||
+          (lead.phone && lead.phone.includes(search));
+
+        const matchesState = !state || lead.state === state;
+        const matchesLeadScore = !lead.lead_score || lead.lead_score >= leadScoreMin;
+        const matchesWebsiteScore = !lead.website_score || lead.website_score >= websiteScoreMin;
+
+        return matchesSearch && matchesState && matchesLeadScore && matchesWebsiteScore;
+      });
+
+      currentPage = 0;
+      renderTable();
+    }
+
+    async function showLeadDetail(id) {
+      try {
+        const response = await fetch(`/api/leads/${id}`);
+        const lead = await response.json();
+
+        const html = `
+          <button class="close-btn" onclick="closeLead Detail()">Close</button>
+          <h2>${lead.company_name}</h2>
+
+          <div class="lead-detail-section">
+            <h3>Contact Information</h3>
+            <p><strong>Phone:</strong> ${lead.phone || 'N/A'}</p>
+            <p><strong>Email:</strong> ${lead.email || 'N/A'}</p>
+            <p><strong>Contact:</strong> ${lead.contact_name ? `${lead.contact_name} (${lead.contact_title || 'No title'})` : 'N/A'}</p>
+          </div>
+
+          <div class="lead-detail-section">
+            <h3>Location</h3>
+            <p><strong>City:</strong> ${lead.city || 'N/A'}</p>
+            <p><strong>State:</strong> ${lead.state || 'N/A'}</p>
+            <p><strong>Address:</strong> ${lead.street || 'N/A'}</p>
+          </div>
+
+          <div class="lead-detail-section">
+            <h3>Services</h3>
+            <p>${lead.services && lead.services.length > 0 ? lead.services.join(', ') : 'Not identified'}</p>
+          </div>
+
+          <div class="lead-detail-section">
+            <h3>Scoring</h3>
+            <p><strong>Lead Score:</strong> ${lead.lead_score ? `${lead.lead_score}/100` : 'Not scored'}</p>
+            <p><strong>Website Score:</strong> ${lead.website_score ? `${lead.website_score}/100` : 'Not scored'}</p>
+            <p><strong>Missed Call Score:</strong> ${lead.missed_call_score ? `${lead.missed_call_score}/100` : 'Not scored'}</p>
+          </div>
+
+          <div class="lead-detail-section">
+            <h3>Features</h3>
+            <p><strong>Emergency Service:</strong> ${lead.offers_emergency_service ? 'Yes' : 'No'}</p>
+            <p><strong>Online Booking:</strong> ${lead.has_online_booking ? 'Yes' : 'No'}</p>
+            <p><strong>Live Chat:</strong> ${lead.has_live_chat ? 'Yes' : 'No'}</p>
+            <p><strong>Company Size:</strong> ${lead.estimated_company_size || 'Unknown'}</p>
+          </div>
+
+          <div class="lead-detail-section">
+            <h3>Website</h3>
+            <p><a href="${lead.website}" target="_blank">${lead.website || 'N/A'}</a></p>
+          </div>
+
+          ${lead.notes ? `<div class="lead-detail-section"><h3>Notes</h3><p>${lead.notes}</p></div>` : ''}
+        `;
+
+        document.getElementById('leadDetailContent').innerHTML = html;
+        document.getElementById('leadDetail').classList.add('active');
+      } catch (error) {
+        showError('Failed to load lead details');
+      }
+    }
+
+    function closeLeadDetail() {
+      document.getElementById('leadDetail').classList.remove('active');
+    }
+
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.innerHTML = `<div class="error">${message}</div>`;
+      setTimeout(() => { errorDiv.innerHTML = ''; }, 5000);
+    }
+
+    // Initialize
+    loadLeads();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(loadStats, 30000);
+  </script>
+</body>
+</html>
