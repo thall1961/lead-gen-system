@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "ts-node src/server.ts",
+    "dev": "ts-node -O '{\"module\":\"commonjs\"}' src/server.ts",
     "discover": "ts-node -O '{\"module\":\"commonjs\"}' src/cli/index.ts discover",
     "analyze": "ts-node -O '{\"module\":\"commonjs\"}' src/cli/index.ts analyze",
     "score": "ts-node -O '{\"module\":\"commonjs\"}' src/cli/index.ts score",
