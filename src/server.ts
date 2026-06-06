@@ -30,12 +30,20 @@ app.get('/api/leads', async (req: express.Request, res: express.Response) => {
       const str = getStringQuery(key);
       return str ? parseInt(str, 10) || defaultVal : defaultVal;
     };
+    // Only apply a score filter when the query param is actually present —
+    // otherwise an unconditional `<= 100` excludes leads with NULL scores.
+    const getOptionalNumberQuery = (key: string): number | undefined => {
+      const str = getStringQuery(key);
+      if (str === undefined) return undefined;
+      const parsed = parseInt(str, 10);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    };
     const filters = {
       state: getStringQuery('state'),
-      leadScoreMin: getNumberQuery('leadScoreMin', 0) || undefined,
-      leadScoreMax: getNumberQuery('leadScoreMax', 100) || undefined,
-      websiteScoreMin: getNumberQuery('websiteScoreMin', 0) || undefined,
-      websiteScoreMax: getNumberQuery('websiteScoreMax', 100) || undefined,
+      leadScoreMin: getOptionalNumberQuery('leadScoreMin'),
+      leadScoreMax: getOptionalNumberQuery('leadScoreMax'),
+      websiteScoreMin: getOptionalNumberQuery('websiteScoreMin'),
+      websiteScoreMax: getOptionalNumberQuery('websiteScoreMax'),
       skip: getNumberQuery('skip', 0),
       limit: getNumberQuery('limit', 50),
     };

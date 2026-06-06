@@ -27,7 +27,7 @@ export class AnthropicService {
     const response = await withRetry(
       async () => {
         return this.client.messages.create({
-          model: options?.model || 'claude-3-5-sonnet-20241022',
+          model: options?.model || 'claude-sonnet-4-6',
           max_tokens: options?.maxTokens || 2048,
           temperature: options?.temperature || 0.7,
           system: options?.system,
