@@ -34,8 +34,12 @@ export interface DiscoveryResult {
   company_name: string;
   website?: string;
   phone?: string;
+  street?: string;
   city: string;
   state: string;
+  zip?: string;
+  google_rating?: number;
+  google_reviews?: number;
   source: string;
 }
 

@@ -7,6 +7,9 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   ANTHROPIC_API_KEY: z.string().min(1),
+  // Optional: required only for the discovery agent (Google Places API New).
+  // Left optional so the server and other CLIs still boot without it.
+  GOOGLE_PLACES_API_KEY: z.string().optional(),
   PLAYWRIGHT_HEADLESS: z.string().default('true'),
   MAX_CONCURRENT_REQUESTS: z.coerce.number().default(5),
   REQUEST_TIMEOUT_MS: z.coerce.number().default(30000),

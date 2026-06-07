@@ -1,31 +1,31 @@
-import Anthropic from '@anthropic-ai/sdk';
-import config, { TARGET_STATES, MAJOR_CITIES_BY_STATE, SEARCH_QUERY_TEMPLATES } from '../../config/index';
+import { TARGET_STATES, MAJOR_CITIES_BY_STATE, SEARCH_QUERY_TEMPLATES } from '../../config/index';
 import { DiscoveryResult } from '../../types/index';
 import { logger } from '../../utils/logger';
 import { normalizeCompanyName, normalizePhone, normalizeUrl } from '../../utils/text';
 import { leadRepository } from '../../database/repositories/LeadRepository';
+import { googlePlacesService } from '../../services/places/GooglePlacesService';
+
+interface DiscoveryQuery {
+  query: string;
+  city: string;
+  state: string;
+}
 
 export class DiscoveryAgent {
-  private client: Anthropic;
-
-  constructor() {
-    this.client = new Anthropic({
-      apiKey: config.ANTHROPIC_API_KEY,
-    });
-  }
-
   /**
-   * Generate search queries for discovery
+   * Generate search queries for discovery, retaining the originating city/state
+   * so results can be disambiguated and back-filled when the API omits them.
    */
-  private generateSearchQueries(): string[] {
-    const queries: string[] = [];
+  private generateSearchQueries(): DiscoveryQuery[] {
+    const queries: DiscoveryQuery[] = [];
 
     for (const state of TARGET_STATES) {
       const cities = MAJOR_CITIES_BY_STATE[state] || [];
 
       for (const city of cities) {
         for (const template of SEARCH_QUERY_TEMPLATES) {
-          queries.push(template.replace('{city}', city));
+          // Append the state so ambiguous city names (e.g. "Kansas City") resolve correctly.
+          queries.push({ query: `${template.replace('{city}', city)}, ${state}`, city, state });
         }
       }
     }
@@ -34,73 +34,35 @@ export class DiscoveryAgent {
   }
 
   /**
-   * Parse LLM response to extract company data
+   * Discover plumbing companies via the Google Places API (New) Text Search.
    */
-  private parseDiscoveryResults(response: string): DiscoveryResult[] {
-    const results: DiscoveryResult[] = [];
+  async discoverCompanies(options?: { limit?: number }): Promise<DiscoveryResult[]> {
+    const limit = options?.limit || 20;
 
-    try {
-      // Try to parse JSON response
-      const jsonMatch = response.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        const items = Array.isArray(parsed) ? parsed : parsed.results || [parsed];
-
-        for (const item of items) {
-          if (item.company_name && (item.website || item.phone || item.city)) {
-            results.push({
-              company_name: item.company_name.trim(),
-              website: item.website ? normalizeUrl(item.website) : undefined,
-              phone: item.phone ? normalizePhone(item.phone) : undefined,
-              city: item.city || '',
-              state: item.state || '',
-              source: 'search',
-            });
-          }
-        }
-      }
-    } catch (error) {
-      logger.debug('Failed to parse discovery results', { error: String(error) });
+    if (!googlePlacesService.isConfigured()) {
+      throw new Error(
+        'GOOGLE_PLACES_API_KEY is not set — discovery cannot run. Add it to your .env (see .env.example).'
+      );
     }
 
-    return results;
-  }
-
-  /**
-   * Discover plumbing companies using Google search simulation
-   */
-  async discoverCompanies(options?: { limit?: number; dryRun?: boolean }): Promise<DiscoveryResult[]> {
-    const limit = options?.limit || 20;
     const allResults: DiscoveryResult[] = [];
     const queries = this.generateSearchQueries();
 
     logger.info('Starting discovery', { queryCount: queries.length, limit });
 
-    // Sample a subset of queries to avoid excessive API calls
+    // Sample a subset of queries to avoid excessive API calls; stop once we hit the limit.
     const sampled = queries.slice(0, Math.ceil(queries.length / 5));
 
-    for (const query of sampled) {
+    for (const { query, city, state } of sampled) {
       if (allResults.length >= limit) break;
 
       try {
-        const response = await this.client.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1024,
-          messages: [
-            {
-              role: 'user',
-              content: `Find plumbing companies for search query: "${query}". Return results as JSON array with fields: company_name, website, phone, city, state. Return realistic plumbing company names from the ${
-                query.split(' ').pop()
-              } area. Include 3-5 companies.`,
-            },
-          ],
+        const found = await googlePlacesService.searchText(query, {
+          maxResults: Math.min(20, limit - allResults.length),
+          fallbackCity: city,
+          fallbackState: state,
         });
-
-        const textContent = response.content.find((block) => block.type === 'text');
-        if (textContent && textContent.type === 'text') {
-          const parsed = this.parseDiscoveryResults(textContent.text);
-          allResults.push(...parsed);
-        }
+        allResults.push(...found);
       } catch (error) {
         logger.error('Error during discovery for query', { query, error: String(error) });
       }
@@ -178,8 +140,12 @@ export class DiscoveryAgent {
           company_name: result.company_name,
           website: result.website,
           phone: result.phone,
+          street: result.street,
           city: result.city,
           state: result.state,
+          zip: result.zip,
+          google_rating: result.google_rating,
+          google_reviews: result.google_reviews,
           source: result.source,
         });
 
