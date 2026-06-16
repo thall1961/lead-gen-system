@@ -5,7 +5,7 @@ export const WEBSITE_ANALYSIS_PROMPT = `Analyze the website content and extract 
   "phones": ["array of phone numbers found"],
   "contact_names": ["public contact names only"],
   "contact_titles": ["job titles of identified contacts"],
-  "services": ["plumbing services offered"],
+  "services": ["products or services offered"],
   "has_emergency_service": boolean,
   "has_online_booking": boolean,
   "has_live_chat": boolean,
@@ -21,26 +21,34 @@ Look for:
 - Company size from: team page, number of trucks, multiple locations, staff count
 - Website quality: responsive design, modern appearance, clear CTAs, professional branding, load speed
 
-Be conservative with contact names - only include names clearly listed as team members or owner on the website.`;
+Be conservative with contact names - only include names clearly listed as team members or owner on the website.
 
-export const LEAD_SCORING_PROMPT = `Score this plumbing company as a lead for AI phone answering services.
+When estimating company size, prefer the small-to-mid range (roughly 0-250 employees);
+solo/small/medium map to that band, "large" indicates likely enterprise (out of target).`;
+
+export const LEAD_SCORING_PROMPT = `Score this company as a lead for CUSTOM SOFTWARE solutions that replace
+spreadsheets and generic off-the-shelf SaaS tools.
 
 Return JSON with "score" (1-100) and "reasoning".
 
+We are looking for small-to-mid-sized businesses (roughly 0-250 employees) whose
+operations are likely run on spreadsheets, paper, or ill-fitting generic tools —
+companies that would benefit from a tailored internal system, and where an Owner,
+Operations Manager/Director, IT Manager/Director, or Business Manager can decide.
+
 Higher scores if:
-- Small business (solo to small team)
-- Offers 24/7 emergency services
-- No live chat or booking system (missed call risk)
-- Poor website quality (less professional)
-- Owner-operated (decision maker on site)
-- Limited office staff (fewer people to answer phones)
+- Small-to-mid business (solo to ~250 employees) — enough complexity to need software, small enough to lack it
+- Operations look manual or process-heavy (scheduling, inventory, bookings, dispatch, memberships, client/job tracking)
+- Signs of spreadsheet/email/paper workflows or a thin, dated, brochure-only website
+- No evidence of a modern integrated platform; uses a patchwork of disconnected generic tools
+- Owner-operated or a clear operations/IT decision-maker is identifiable
+- Industry where bespoke workflow software gives real leverage (travel/recreation, retail, consumer services, business services)
 
 Lower scores if:
-- Large company with many locations
-- Fully staffed office
-- Modern website with good tools
-- Has live chat or online booking
-- Corporate structure`;
+- Large enterprise with established IT systems and procurement
+- Already runs a modern, integrated, industry-specific platform
+- A pure storefront/franchise with no operational complexity to systematize
+- No identifiable decision-maker and no operational footprint to improve`;
 
 export const MISSED_CALL_SCORING_PROMPT = `Score the likelihood (1-100) that this plumbing company misses inbound calls.
 

@@ -33,7 +33,88 @@ try {
 
 export default config;
 
-// Target states for discovery (exclude TX)
+// ---------------------------------------------------------------------------
+// Industry verticals
+//
+// The system started as plumbing-only. It is now multi-industry: discovery is
+// driven by these verticals instead of a single hardcoded set of plumbing
+// queries. Each vertical maps to a set of Google Places "Text Search" queries
+// (the {city} placeholder is filled per target city). Add or edit verticals
+// here — nothing else is hardcoded to a specific trade.
+// ---------------------------------------------------------------------------
+export interface IndustryVertical {
+  key: string;
+  label: string;
+  queryTemplates: string[];
+}
+
+export const INDUSTRY_VERTICALS: IndustryVertical[] = [
+  {
+    key: 'travel_recreation_leisure',
+    label: 'Travel, Recreation, and Leisure',
+    queryTemplates: [
+      'travel agency in {city}',
+      'tour operator in {city}',
+      'campground or RV park in {city}',
+      'golf course in {city}',
+      'fitness center or gym in {city}',
+      'recreation center in {city}',
+      'event venue in {city}',
+      'bowling alley or family entertainment center in {city}',
+    ],
+  },
+  {
+    key: 'retail',
+    label: 'Retail',
+    queryTemplates: [
+      'furniture store in {city}',
+      'boutique clothing store in {city}',
+      'hardware store in {city}',
+      'garden center or nursery in {city}',
+      'sporting goods store in {city}',
+      'specialty retail store in {city}',
+    ],
+  },
+  {
+    key: 'consumer_services',
+    label: 'Consumer Services',
+    queryTemplates: [
+      'auto repair shop in {city}',
+      'hair salon or spa in {city}',
+      'pet grooming service in {city}',
+      'landscaping company in {city}',
+      'home cleaning service in {city}',
+      'appliance repair service in {city}',
+    ],
+  },
+  {
+    key: 'business_services',
+    label: 'Business Services',
+    queryTemplates: [
+      'marketing agency in {city}',
+      'accounting firm in {city}',
+      'commercial cleaning company in {city}',
+      'staffing agency in {city}',
+      'print shop or sign company in {city}',
+      'IT services company in {city}',
+    ],
+  },
+];
+
+export const INDUSTRY_KEYS = INDUSTRY_VERTICALS.map((v) => v.key);
+
+// Focused Texas targeting: the Burleson / south Fort Worth / Johnson County
+// corridor requested for high-priority outreach. State is always 'TX'.
+export const TEXAS_FOCUS_CITIES = [
+  'Burleson',
+  'Fort Worth',
+  'Crowley',
+  'Joshua',
+  'Mansfield',
+  'Cleburne',
+];
+
+// Target states for broad ("national") US discovery
 export const TARGET_STATES = [
   'OK',
   'AR',

@@ -1,4 +1,11 @@
-import { TARGET_STATES, MAJOR_CITIES_BY_STATE, SEARCH_QUERY_TEMPLATES } from '../../config/index';
+import {
+  TARGET_STATES,
+  MAJOR_CITIES_BY_STATE,
+  INDUSTRY_VERTICALS,
+  INDUSTRY_KEYS,
+  TEXAS_FOCUS_CITIES,
+  IndustryVertical,
+} from '../../config/index';
 import { DiscoveryResult } from '../../types/index';
 import { logger } from '../../utils/logger';
 import { normalizeCompanyName, normalizePhone, normalizeUrl } from '../../utils/text';
@@ -9,23 +16,88 @@ interface DiscoveryQuery {
   query: string;
   city: string;
   state: string;
+  industry: string;
+}
+
+export type DiscoveryRegion = 'texas' | 'national' | 'both';
+
+export interface DiscoverOptions {
+  limit?: number;
+  /** Industry vertical keys to search (see INDUSTRY_VERTICALS). Defaults to all. */
+  industries?: string[];
+  /** Geographic focus. 'both' (default) lists Texas-focus cities first, then national. */
+  region?: DiscoveryRegion;
 }
 
 export class DiscoveryAgent {
   /**
-   * Generate search queries for discovery, retaining the originating city/state
-   * so results can be disambiguated and back-filled when the API omits them.
+   * Resolve the requested vertical keys to vertical definitions, ignoring
+   * unknown keys. An empty/undefined list means "all verticals".
    */
-  private generateSearchQueries(): DiscoveryQuery[] {
+  private resolveVerticals(industries?: string[]): IndustryVertical[] {
+    if (!industries || industries.length === 0) {
+      return INDUSTRY_VERTICALS;
+    }
+    const requested = new Set(industries);
+    const matched = INDUSTRY_VERTICALS.filter((v) => requested.has(v.key));
+    if (matched.length === 0) {
+      logger.warn('No known industry verticals matched; falling back to all', {
+        requested: industries,
+        known: INDUSTRY_KEYS,
+      });
+      return INDUSTRY_VERTICALS;
+    }
+    return matched;
+  }
+
+  /**
+   * Build the ordered list of (city, state) targets for a region. Texas-focus
+   * cities come first so that, when the query set is sampled/limited, the
+   * high-priority Burleson/Fort Worth corridor is covered before national fill.
+   */
+  private resolveTargets(region: DiscoveryRegion): Array<{ city: string; state: string }> {
+    const texas = TEXAS_FOCUS_CITIES.map((city) => ({ city, state: 'TX' }));
+    const national: Array<{ city: string; state: string }> = [];
+    for (const state of TARGET_STATES) {
+      for (const city of MAJOR_CITIES_BY_STATE[state] || []) {
+        national.push({ city, state });
+      }
+    }
+
+    switch (region) {
+      case 'texas':
+        return texas;
+      case 'national':
+        return national;
+      case 'both':
+      default:
+        return [...texas, ...national];
+    }
+  }
+
+  /**
+   * Generate search queries across the selected verticals and targets,
+   * retaining the originating city/state/industry so results can be
+   * disambiguated, back-filled, and tagged.
+   */
+  private generateSearchQueries(
+    verticals: IndustryVertical[],
+    targets: Array<{ city: string; state: string }>
+  ): DiscoveryQuery[] {
     const queries: DiscoveryQuery[] = [];
 
-    for (const state of TARGET_STATES) {
-      const cities = MAJOR_CITIES_BY_STATE[state] || [];
-
-      for (const city of cities) {
-        for (const template of SEARCH_QUERY_TEMPLATES) {
-          // Append the state so ambiguous city names (e.g. "Kansas City") resolve correctly.
-          queries.push({ query: `${template.replace('{city}', city)}, ${state}`, city, state });
+    // Iterate targets in the outer loop so each city is covered across every
+    // vertical before moving on — keeps priority cities front-loaded.
+    for (const { city, state } of targets) {
+      for (const vertical of verticals) {
+        for (const template of vertical.queryTemplates) {
+          // Append the state so ambiguous city names resolve correctly.
+          queries.push({
+            query: `${template.replace('{city}', city)}, ${state}`,
+            city,
+            state,
+            industry: vertical.key,
+          });
         }
       }
     }
@@ -34,10 +106,12 @@ export class DiscoveryAgent {
   }
 
   /**
-   * Discover plumbing companies via the Google Places API (New) Text Search.
+   * Discover companies via the Google Places API (New) Text Search across the
+   * configured industry verticals and geographic focus.
    */
-  async discoverCompanies(options?: { limit?: number }): Promise<DiscoveryResult[]> {
+  async discoverCompanies(options?: DiscoverOptions): Promise<DiscoveryResult[]> {
     const limit = options?.limit || 20;
+    const region = options?.region || 'both';
 
     if (!googlePlacesService.isConfigured()) {
       throw new Error(
@@ -45,15 +119,19 @@ export class DiscoveryAgent {
       );
     }
 
+    const verticals = this.resolveVerticals(options?.industries);
+    const targets = this.resolveTargets(region);
     const allResults: DiscoveryResult[] = [];
-    const queries = this.generateSearchQueries();
+    const queries = this.generateSearchQueries(verticals, targets);
 
-    logger.info('Starting discovery', { queryCount: queries.length, limit });
+    logger.info('Starting discovery', {
+      queryCount: queries.length,
+      limit,
+      region,
+      industries: verticals.map((v) => v.key),
+    });
 
-    // Sample a subset of queries to avoid excessive API calls; stop once we hit the limit.
-    const sampled = queries.slice(0, Math.ceil(queries.length / 5));
-
-    for (const { query, city, state } of sampled) {
+    for (const { query, city, state, industry } of queries) {
       if (allResults.length >= limit) break;
 
       try {
@@ -62,7 +140,10 @@ export class DiscoveryAgent {
           fallbackCity: city,
           fallbackState: state,
         });
-        allResults.push(...found);
+        // Tag every result with the vertical it was discovered under.
+        for (const result of found) {
+          allResults.push({ ...result, industry });
+        }
       } catch (error) {
         logger.error('Error during discovery for query', { query, error: String(error) });
       }
@@ -138,6 +219,7 @@ export class DiscoveryAgent {
         // Create new lead
         await leadRepository.create({
           company_name: result.company_name,
+          industry: result.industry,
           website: result.website,
           phone: result.phone,
           street: result.street,

@@ -2,6 +2,7 @@
 export interface Lead {
   id: string;
   company_name: string;
+  industry?: string;
   website?: string;
   phone?: string;
   email?: string;
@@ -32,6 +33,7 @@ export interface Lead {
 // Discovery result
 export interface DiscoveryResult {
   company_name: string;
+  industry?: string;
   website?: string;
   phone?: string;
   street?: string;

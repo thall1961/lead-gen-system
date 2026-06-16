@@ -81,32 +81,32 @@ export class ScoringAgent {
   private identifyKeyFactors(lead: Lead): string[] {
     const factors: string[] = [];
 
-    if (lead.estimated_company_size === 'solo' || lead.estimated_company_size === 'small') {
-      factors.push('Small company size');
+    if (
+      lead.estimated_company_size === 'solo' ||
+      lead.estimated_company_size === 'small' ||
+      lead.estimated_company_size === 'medium'
+    ) {
+      factors.push('Small-to-mid company size (in target band)');
     }
 
-    if (lead.offers_emergency_service) {
-      factors.push('Offers 24/7 emergency service');
-    }
-
-    if (!lead.has_live_chat) {
-      factors.push('No live chat system');
+    if (lead.estimated_company_size === 'large') {
+      factors.push('Likely enterprise (out of target band)');
     }
 
     if (!lead.has_online_booking) {
-      factors.push('No online booking');
+      factors.push('No online booking/scheduling system (likely manual ops)');
     }
 
     if (lead.website_score && lead.website_score < 60) {
-      factors.push('Lower website quality');
+      factors.push('Thin/dated website (likely spreadsheet-driven ops)');
     }
 
     if (lead.contact_name) {
-      factors.push('Owner contact identified');
+      factors.push('Decision-maker contact identified');
     }
 
-    if (lead.services && lead.services.length < 5) {
-      factors.push('Limited service offerings');
+    if (lead.industry) {
+      factors.push(`Industry: ${lead.industry}`);
     }
 
     return factors.slice(0, 5);

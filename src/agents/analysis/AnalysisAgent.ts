@@ -221,7 +221,7 @@ All Phones Found: ${[...homepageContacts.phones, ...contactPageContacts.phones].
     const serviceStr = services.slice(0, 3).join(', ');
     const hasContact = emailCount > 0 ? 'has contact info' : 'missing contact info';
 
-    return `Plumbing company offering ${serviceStr || 'various services'}, ${hasContact}`;
+    return `Company offering ${serviceStr || 'various products/services'}, ${hasContact}`;
   }
 
   /**

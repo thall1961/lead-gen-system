@@ -1,11 +1,15 @@
-import { discoveryAgent } from '../agents/discovery/DiscoveryAgent';
+import { discoveryAgent, DiscoverOptions } from '../agents/discovery/DiscoveryAgent';
 import { logger } from '../utils/logger';
 
-export async function runDiscovery(): Promise<void> {
+export async function runDiscovery(options?: DiscoverOptions): Promise<void> {
   try {
-    logger.info('Starting discovery process');
+    logger.info('Starting discovery process', { ...options });
 
-    const results = await discoveryAgent.discoverCompanies({ limit: 50 });
+    const results = await discoveryAgent.discoverCompanies({
+      limit: options?.limit ?? 50,
+      region: options?.region,
+      industries: options?.industries,
+    });
 
     if (results.length === 0) {
       logger.info('No companies discovered');
